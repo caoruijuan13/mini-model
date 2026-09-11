@@ -91,3 +91,32 @@ s bectimodain, e be bls tsery erels anged bl mondalangure aule merere an, me be 
 ```
 
 新策略过滤了低概率候选字符，输出中的字符片段更集中；但模型仍只有一个字符的上下文，因此整体连贯性提升有限。这个对比反映的是采样策略差异，不是模型训练效果差异。
+
+## 10. 真实语料对照
+
+真实语料使用美国《独立宣言》公共领域英文节选。该实验独立构建模型，不覆盖前面的 `DEFAULT_CORPUS` 基线结果。
+
+| 项目 | 数值 |
+|---|---:|
+| 总字符数 | 652 |
+| 训练集字符数 | 521 |
+| 验证集字符数 | 65 |
+| 测试集字符数 | 66 |
+| 词表大小 | 40 |
+| 训练集 loss | 1.918266 |
+| 验证集 perplexity | 36.390926 |
+| 测试集 perplexity | 36.970515 |
+
+使用相同的起始字符 `W`、长度 `100` 和随机种子 `7`，原始 `sample()` 输出：
+
+```text
+Wess at tome anghtopuigh Gomopond at, Cr athser ioven d Thewenme f e uitese tsthalthathecof theat d 
+```
+
+改进后的 `sample_new(temperature=0.8, top_k=5)` 输出：
+
+```text
+We toved tharnd t therntir o thesstharsernene ts t atindo athe tonght athe it thto to thengo of-eded
+```
+
+真实语料的词表更大、字符组合更多，而且没有重复短句强化固定转移，因此验证和测试 perplexity 明显高于教学基线。`sample_new()` 减少了低概率字符跳转，但 bigram 仍只依赖前一个字符，所以无法形成稳定的长距离语义。两组结果只用于同一模型结构下的语料和采样对照。

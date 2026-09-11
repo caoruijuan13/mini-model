@@ -49,5 +49,9 @@ PYTHONPATH=projects/02_char_bigram python3 -m pytest -q projects/02_char_bigram/
 新增测试后总计：
 
 ```text
-2 passed
+3 passed
 ```
+
+## 7. 真实语料对照测试
+
+新增独立测试使用 `REAL_CORPUS` 构建词表并完成训练、验证和测试，检查 loss 与 perplexity 为有限值，同时确认 `sample()` 和 `sample_new()` 都能从真实语料模型生成指定长度的结果。原有两个测试保持不变。
