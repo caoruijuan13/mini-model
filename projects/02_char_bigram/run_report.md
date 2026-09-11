@@ -81,3 +81,13 @@ smon es tre, cimexpry bl aldured. bl. are untin mesel e. thelenged. auctesmary m
 - 顺序切分的数据片段来自重复语料，评估难度有限。
 - 只报告 loss 和困惑度，没有衡量语义、语法或文本质量。
 - 模型没有未知字符处理，也没有更长上下文、神经网络参数或批量训练。
+
+## 9. 原始采样与改进采样对比
+
+原有运行报告中的 sample 来自 `sample()`，该方法保留作为全量概率采样基线。使用同一个已保存模型、相同起始字符和随机种子，调用 `sample_new(temperature=0.8, top_k=5)` 得到：
+
+```text
+s bectimodain, e be bls tsery erels anged bl mondalangure aule merere an, me be the tind ectind meri
+```
+
+新策略过滤了低概率候选字符，输出中的字符片段更集中；但模型仍只有一个字符的上下文，因此整体连贯性提升有限。这个对比反映的是采样策略差异，不是模型训练效果差异。

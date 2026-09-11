@@ -51,3 +51,5 @@ PYTHONPATH=projects/02_char_bigram python3 -m pytest -q projects/02_char_bigram/
 - `generate.py`：加载模型并采样文本
 
 本目录是一个独立的后续学习项目。阶段一完成后，再正式进入本目录学习。
+
+采样对比：`sample()` 保留原始的全量概率采样逻辑；`sample_new()` 使用 `temperature=0.8` 和 `top_k=5`，先突出高概率字符，再过滤低概率候选。两者共享同一模型概率表，区别只发生在推理阶段。

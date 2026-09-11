@@ -73,3 +73,36 @@ class CharBigram:
             row = self.probs[self.to_id[result[-1]]]
             result.append(self.vocab[rng.choice(len(self.vocab), p=row)])
         return "".join(result)
+
+    def sample_new(
+        self,
+        start: str = "s",
+        length: int = 100,
+        seed: int = 7,
+        temperature: float = 0.8,
+        top_k: int | None = 5,
+    ) -> str:
+        """使用 temperature 和 top-k 的改进采样，不改变原 sample。"""
+        if self.probs is None:
+            raise RuntimeError("fit or load the model before sampling")
+        if start not in self.to_id:
+            raise ValueError("start character is outside the vocabulary")
+        if temperature <= 0:
+            raise ValueError("temperature must be positive")
+        if top_k is not None and not 1 <= top_k <= len(self.vocab):
+            raise ValueError("top_k must be between 1 and vocabulary size")
+
+        rng = np.random.default_rng(seed)
+        result = [start]
+        for _ in range(max(0, length - 1)):
+            row = self.probs[self.to_id[result[-1]]]
+            adjusted = np.log(row) / temperature
+            if top_k is None:
+                candidate_ids = np.arange(len(self.vocab))
+            else:
+                candidate_ids = np.argpartition(adjusted, -top_k)[-top_k:]
+            candidate_probs = np.exp(adjusted[candidate_ids] - adjusted[candidate_ids].max())
+            candidate_probs /= candidate_probs.sum()
+            next_id = rng.choice(candidate_ids, p=candidate_probs)
+            result.append(self.vocab[next_id])
+        return "".join(result)
