@@ -24,7 +24,8 @@
 | 项目 | 核心逻辑 | 主要功能 | 输入 → 输出 | 训练与验证重点 |
 | --- | --- | --- | --- | --- |
 | [01_logistic_regression](projects/01_logistic_regression/) | 线性函数、sigmoid、二元交叉熵、梯度下降 | 二分类概率预测 | 两个数值特征 → 类别概率和分类结果 | 标签、loss、梯度方向、参数更新、验证集 early stopping、测试集泛化 |
-| [02_char_bigram](projects/02_char_bigram/) | 字符 ID、相邻转移计数、条件概率、采样 | 下一字符预测和序列生成 | 当前字符 → 下一字符概率分布；起始字符 → 字符序列 | 自监督目标构造、平滑、交叉熵、困惑度、模型保存与加载 |
+| [02_char_bigram](projects/02_char_bigram/) | 字符 bigram、教学/真实语料对照、原始/改进采样 | 下一字符预测和序列生成 | 一个上下文字符 → 下一字符概率分布 | 自监督目标构造、平滑、困惑度、temperature、top-k |
+| [03_char_trigram](projects/03_char_trigram/) | 字符 trigram、bigram backoff、改进采样 | 真实语料下一字符预测和生成 | 两个上下文字符 → 下一字符概率分布 | 稀疏上下文、验证集平滑选择、困惑度、temperature、top-k |
 
 后续项目继续沿用这五个定位维度：
 
@@ -43,7 +44,7 @@
 | 学习范式 | 核心特征 | 当前项目 | 后续占位 |
 | --- | --- | --- | --- |
 | 监督学习 | 输入和目标标签由数据集明确提供 | [01 逻辑回归](projects/01_logistic_regression/)：二分类 | 多分类、回归、结构化预测 |
-| 自监督学习 | 从原始数据自动构造预测目标 | [阶段 02 字符 bigram](projects/02_char_bigram/)：下一字符预测 | 字符级 MLP、Transformer、掩码建模 |
+| 自监督学习 | 从原始数据自动构造预测目标 | [阶段 02 字符 bigram](projects/02_char_bigram/)、[阶段 03 字符 trigram](projects/03_char_trigram/) | 字符级 MLP、Transformer、掩码建模 |
 | 无监督学习 | 没有明确标签，直接学习数据结构或分布 | 暂无 | 聚类、降维、密度估计、表示学习 |
 | 强化学习 | 通过环境反馈的奖励和惩罚学习行动策略 | 暂无 | 多臂老虎机、价值函数、策略优化 |
 
