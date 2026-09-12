@@ -42,7 +42,7 @@
 | 01 逻辑回归 | [x] | 建立监督学习、loss 和梯度下降闭环 | 测试与运行报告已完成 |
 | 02 字符 bigram | [x] | 建立字符级下一 token 预测闭环 | 测试、持久化和语料对照已完成 |
 | 03 字符 trigram | [x] | 理解更长上下文、稀疏性和 backoff | 测试、验证集调参与基线对照已完成 |
-| 04 显式字符 Tokenizer | [ ] | 建立稳定的文本与 token ID 边界 | encode/decode、未知字符和持久化验收通过 |
+| 04 显式字符 Tokenizer | [x] | 建立稳定的文本与 token ID 边界 | encode/decode、未知字符和持久化验收通过 |
 | 05 Token MLP | [ ] | 从计数表进入 embedding 和神经网络 | 反向传播正确并完成 trigram 对照 |
 | 06 训练工程 | [ ] | 建立可恢复、可复现的训练流程 | mini-batch、Adam、checkpoint 验收通过 |
 | 07 字符级 Transformer | [ ] | 理解 causal self-attention 和自回归生成 | mask、张量形状、训练和生成测试通过 |
@@ -147,7 +147,7 @@
 
 阶段状态：
 
-- [ ] 阶段完成
+- [x] 阶段完成
 
 ### 目的
 
@@ -160,21 +160,21 @@ token ID 序列 → Tokenizer.decode → 文本
 
 ### 实现清单
 
-- [ ] `token_to_id` 和 `id_to_token` 双向映射；
-- [ ] `<BOS>`、`<EOS>`、`<UNK>` 等特殊 token；
-- [ ] 明确只使用训练数据建立词表的策略；
-- [ ] `encode()`、`decode()`、保存和加载；
-- [ ] 空文本、未知字符、特殊 token 和往返转换测试；
-- [ ] 使用显式 Tokenizer 重新表达 bigram 数据构造；
-- [ ] 保留项目 02、03 的历史代码和基线结果。
+- [x] `token_to_id` 和 `id_to_token` 双向映射；
+- [x] `<BOS>`、`<EOS>`、`<UNK>` 等特殊 token；
+- [x] 明确只使用训练数据建立词表的策略；
+- [x] `encode()`、`decode()`、保存和加载；
+- [x] 空文本、未知字符、特殊 token 和往返转换测试；
+- [x] 使用显式 Tokenizer 重新表达 bigram 数据构造、训练和采样；
+- [x] 保留项目 02、03 的历史代码和基线结果。
 
 ### 验收清单
 
-- [ ] `decode(encode(text))` 在支持范围内可以还原文本；
-- [ ] 未知字符行为明确且可测试；
-- [ ] BOS/EOS 是否加入由显式参数控制；
-- [ ] 保存、加载前后的词表和编码结果一致；
-- [ ] 后续模型只接收 token ID，不直接依赖字符串索引逻辑。
+- [x] `decode(encode(text))` 在支持范围内可以还原文本；
+- [x] 未知字符行为明确且可测试；
+- [x] BOS/EOS 是否加入由显式参数控制；
+- [x] 保存、加载前后的词表和编码结果一致；
+- [x] 阶段 04 的 bigram 样本构造只接收 token ID，不直接依赖字符串索引逻辑。
 
 ### 暂不包含
 
@@ -367,4 +367,4 @@ subword token：词表更大、序列更短
 
 ## 当前执行点
 
-当前执行点是阶段 04。开始实现前，先复习项目 02、03 中的 `vocab`、`to_id` 和 `ids`，确认哪些职责属于 Tokenizer，哪些仍应由数据集或模型负责。
+当前执行点是阶段 05。开始实现 Token MLP 前，先确认模型只接收阶段 04 产生的 token ID；Tokenizer 不负责 embedding、上下文窗口、loss 或梯度计算。
