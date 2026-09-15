@@ -43,7 +43,7 @@
 | 02 字符 bigram | [x] | 建立字符级下一 token 预测闭环 | 测试、持久化和语料对照已完成 |
 | 03 字符 trigram | [x] | 理解更长上下文、稀疏性和 backoff | 测试、验证集调参与基线对照已完成 |
 | 04 显式字符 Tokenizer | [x] | 建立稳定的文本与 token ID 边界 | encode/decode、未知字符和持久化验收通过 |
-| 05 Token MLP | [ ] | 从计数表进入 embedding 和神经网络 | 反向传播正确并完成 trigram 对照 |
+| 05 Token MLP | [x] | 从计数表进入 embedding 和神经网络 | 反向传播正确并完成 trigram 对照 |
 | 06 训练工程 | [ ] | 建立可恢复、可复现的训练流程 | mini-batch、Adam、checkpoint 验收通过 |
 | 07 字符级 Transformer | [ ] | 理解 causal self-attention 和自回归生成 | mask、张量形状、训练和生成测试通过 |
 | 08 Subword Tokenizer | [ ] | 理解现代大模型的子词 token | 完成字符与 subword 的可重复对照 |
@@ -186,7 +186,7 @@ token ID 序列 → Tokenizer.decode → 文本
 
 阶段状态：
 
-- [ ] 阶段完成
+- [x] 阶段完成
 
 ### 目的
 
@@ -204,21 +204,21 @@ token ID
 
 ### 实现清单
 
-- [ ] token embedding 查表；
-- [ ] 固定长度上下文窗口；
-- [ ] 线性层、激活函数、logits 和 softmax；
-- [ ] 交叉熵与反向传播；
-- [ ] 固定随机种子的训练和生成；
-- [ ] 与项目 03 在相同语料切分上的 perplexity 对照。
+- [x] token embedding 查表；
+- [x] 固定长度上下文窗口；
+- [x] 线性层、激活函数、logits 和 softmax；
+- [x] 交叉熵与反向传播；
+- [x] 固定随机种子的训练和生成；
+- [x] 与项目 03 在相同语料切分上的 perplexity 对照。
 
 ### 验收清单
 
-- [ ] 前向传播的张量形状正确；
-- [ ] 可用数值梯度或小规模基准验证关键梯度；
-- [ ] 训练 loss 在可控样本上下降；
-- [ ] 保存、加载后相同输入产生相同输出；
-- [ ] 报告能够解释 token ID、embedding 和 logits 的区别；
-- [ ] 不把单次生成样例作为模型提升的主要证据。
+- [x] 前向传播的张量形状正确；
+- [x] 可用数值梯度或小规模基准验证关键梯度；
+- [x] 训练 loss 在可控样本上下降；
+- [x] 保存、加载后相同输入产生相同输出；
+- [x] 报告能够解释 token ID、embedding 和 logits 的区别；
+- [x] 不把单次生成样例作为模型提升的主要证据。
 
 ## 06：训练工程基础
 
@@ -367,4 +367,4 @@ subword token：词表更大、序列更短
 
 ## 当前执行点
 
-当前执行点是阶段 05。开始实现 Token MLP 前，先确认模型只接收阶段 04 产生的 token ID；Tokenizer 不负责 embedding、上下文窗口、loss 或梯度计算。
+当前执行点是阶段 06。阶段 05 已完成 Token MLP 的前向传播、手写反向传播、全批量梯度下降、验证集模型选择、保存加载和自回归生成；阶段 06 在不改变模型语义的前提下补充 mini-batch、Adam、checkpoint 和训练可观测性。

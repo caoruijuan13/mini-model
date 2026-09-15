@@ -2,7 +2,7 @@
 
 本项目采用“输入 → 模型 → 输出”的方式，一次学习一个问题，通过手写实现、对照实验和自动化测试逐步理解机器学习与语言模型。
 
-当前已经完成逻辑回归、字符 bigram、字符 trigram 和显式字符 Tokenizer 四个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
+当前已经完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer 和 Token MLP 五个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
 
 ## 当前状态
 
@@ -12,16 +12,17 @@
 | [02 字符 bigram](projects/02_char_bigram/) | 已完成 | 一个字符预测下一个字符、平滑、困惑度、采样、持久化 | 3 个测试；教学语料与真实语料对照 |
 | [03 字符 trigram](projects/03_char_trigram/) | 已完成 | 两字符上下文、验证集选择平滑、bigram backoff | 3 个测试；真实语料测试 perplexity `17.423710` |
 | [04 显式字符 Tokenizer](projects/04_char_tokenizer/) | 已完成 | vocabulary、特殊 token、encode/decode、Token Bigram 采样 | 9 个测试；只使用训练文本建立词表 |
+| [05 Token MLP](projects/05_token_mlp/) | 已完成 | embedding、隐藏层、反向传播、梯度下降和自回归生成 | 11 个测试；最佳验证 perplexity `16.681468` |
 
 “已完成”表示当前阶段形成了独立代码、设计说明、运行报告和自动化测试；它只代表教学项目的当前验收，不代表生产模型能力。
 
 当前全量测试结果：
 
 ```text
-21 passed
+32 passed
 ```
 
-下一阶段是 Token Embedding 与 MLP，尚未开始实现。它与前后阶段的关系见 [项目路线图](ROADMAP.md)。
+下一阶段是训练工程基础，将在当前全批量梯度下降之上加入 mini-batch、Adam 和 checkpoint。它与前后阶段的关系见 [项目路线图](ROADMAP.md)。
 
 ## Token 在当前项目中的位置
 
@@ -40,11 +41,13 @@ Token 是模型处理文本时使用的离散单位。它可以是一个字符�
 
 | Token 概念 | 当前变量 | 含义 |
 | --- | --- | --- |
-| token | `ch`、`c` | 单个字符 |
-| vocabulary | `vocab`、`vocabulary` | 模型支持的全部字符 |
-| token → token ID | `to_id` | 字符到整数编号的映射 |
-| token ID 序列 | `ids` | 模型实际用于查概率表的整数序列 |
-| 当前/目标 token ID | `current`、`following` | 一个 bigram 训练样本 |
+| token | `character`、`token` | 当前阶段仍以单个字符作为 token |
+| vocabulary | `tokenizer.tokens` | Tokenizer 支持的字符和特殊 token |
+| token → token ID | `tokenizer.token_to_id` | 字符或特殊 token 到整数编号的映射 |
+| token ID 序列 | `train_ids` 等 | 模型实际接收的离散整数序列 |
+| 上下文/目标 token ID | `context_ids`、`targets` | Token MLP 的自监督训练样本 |
+| token embedding | `params["embedding"]` | 由 token ID 查表获得并通过梯度学习的浮点向量 |
+| 输出分数与概率 | `logits`、`probs` | 每个候选 token ID 的分数与下一 token 概率 |
 
 因此，阶段 04 不是第一次“使用 token”，而是第一次把隐含的字符编码逻辑抽成明确、可保存、可测试、可复用的 Tokenizer 接口。
 
@@ -57,7 +60,7 @@ Token 是模型处理文本时使用的离散单位。它可以是一个字符�
 | 学习范式 | 核心特征 | 当前项目 | 后续方向 |
 | --- | --- | --- | --- |
 | 监督学习 | 数据明确提供输入和目标标签 | 01 逻辑回归 | 多分类、回归、结构化预测 |
-| 自监督学习 | 从原始数据自动构造预测目标 | 02 bigram、03 trigram | Token MLP、Transformer、掩码建模 |
+| 自监督学习 | 从原始数据自动构造预测目标 | 02 bigram、03 trigram、05 Token MLP | Transformer、掩码建模 |
 | 无监督学习 | 没有明确标签，学习数据结构或分布 | 暂无 | 聚类、降维、密度估计、表示学习 |
 | 强化学习 | 根据环境奖励学习行动策略 | 暂无 | 多臂老虎机、价值函数、策略优化 |
 
@@ -71,7 +74,7 @@ Tokenization 本身不是一种训练范式，而是把原始输入转换为模�
 python3 -m pytest -q
 ```
 
-分别运行四个已完成阶段：
+分别运行五个已完成阶段：
 
 ```bash
 python3 projects/01_logistic_regression/main.py
@@ -80,4 +83,5 @@ PYTHONPATH=projects/02_char_bigram python3 projects/02_char_bigram/generate.py
 PYTHONPATH=projects/03_char_trigram python3 projects/03_char_trigram/train.py
 PYTHONPATH=projects/03_char_trigram python3 projects/03_char_trigram/generate.py
 python3 projects/04_char_tokenizer/demo.py
+PYTHONPATH=projects/05_token_mlp python3 projects/05_token_mlp/train.py
 ```
