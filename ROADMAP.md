@@ -224,7 +224,7 @@ token ID
 
 阶段状态：
 
-- [ ] 阶段完成
+- [x] 阶段完成
 
 ### 目的
 
@@ -232,21 +232,21 @@ token ID
 
 ### 实现清单
 
-- [ ] mini-batch 与数据迭代；
-- [ ] SGD 和 Adam 对照；
-- [ ] 学习率、batch size 和随机种子配置；
-- [ ] 验证集 early stopping；
-- [ ] checkpoint 保存与恢复训练；
-- [ ] loss、梯度范数和训练耗时记录；
-- [ ] 相同配置重复运行的一致性检查。
+- [x] mini-batch 与数据迭代；
+- [x] SGD 和 Adam 对照；
+- [x] 学习率、batch size 和随机种子配置；
+- [x] 验证集 early stopping；
+- [x] checkpoint 保存与恢复训练；
+- [x] loss、梯度范数和训练耗时记录；
+- [x] 相同配置重复运行的一致性检查。
 
 ### 验收清单
 
-- [ ] 中断后可以从 checkpoint 恢复训练；
-- [ ] 恢复后的 step、参数和优化器状态连续；
-- [ ] 训练状态、推理模型和实验报告彼此分离；
-- [ ] 验证集用于选择，测试集只用于最终评估；
-- [ ] Adam 的每个状态变量和更新步骤都可以解释。
+- [x] 中断后可以从 checkpoint 恢复训练；
+- [x] 恢复后的 step、参数和优化器状态连续；
+- [x] 训练状态、推理模型和实验报告彼此分离；
+- [x] 验证集用于选择，测试集只用于最终评估；
+- [x] Adam 的每个状态变量和更新步骤都可以解释。
 
 ## 07：字符级 Transformer
 
@@ -367,4 +367,4 @@ subword token：词表更大、序列更短
 
 ## 当前执行点
 
-当前执行点是阶段 06。阶段 05 已完成 Token MLP 的前向传播、手写反向传播、全批量梯度下降、验证集模型选择、保存加载和自回归生成；阶段 06 在不改变模型语义的前提下补充 mini-batch、Adam、checkpoint 和训练可观测性。
+当前执行点是阶段 07。阶段 06 已在不改变 Token MLP 语义的前提下完成 mini-batch、SGD/Adam、early stopping、checkpoint 精确恢复和训练可观测性；阶段 07 将加入字符级 causal self-attention 和 Transformer block。

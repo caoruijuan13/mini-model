@@ -1,2 +1,7 @@
 *.pyc
+
+# Regenerable model weights and training checkpoints.
 *.npz
+
+# Machine-generated experiment records.
+projects/*/artifacts

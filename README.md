@@ -2,7 +2,7 @@
 
 本项目采用“输入 → 模型 → 输出”的方式，一次学习一个问题，通过手写实现、对照实验和自动化测试逐步理解机器学习与语言模型。
 
-当前已经完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer 和 Token MLP 五个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
+当前已经完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP 和训练工程基础六个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
 
 ## 当前状态
 
@@ -13,16 +13,17 @@
 | [03 字符 trigram](projects/03_char_trigram/) | 已完成 | 两字符上下文、验证集选择平滑、bigram backoff | 3 个测试；真实语料测试 perplexity `17.423710` |
 | [04 显式字符 Tokenizer](projects/04_char_tokenizer/) | 已完成 | vocabulary、特殊 token、encode/decode、Token Bigram 采样 | 9 个测试；只使用训练文本建立词表 |
 | [05 Token MLP](projects/05_token_mlp/) | 已完成 | embedding、隐藏层、反向传播、梯度下降和自回归生成 | 11 个测试；最佳验证 perplexity `16.681468` |
+| [06 训练工程基础](projects/06_training_engineering/) | 已完成 | mini-batch、SGD/Adam、early stopping、checkpoint 和可复现训练 | 11 个测试；中断恢复与连续训练逐元素一致 |
 
 “已完成”表示当前阶段形成了独立代码、设计说明、运行报告和自动化测试；它只代表教学项目的当前验收，不代表生产模型能力。
 
 当前全量测试结果：
 
 ```text
-32 passed
+43 passed
 ```
 
-下一阶段是训练工程基础，将在当前全批量梯度下降之上加入 mini-batch、Adam 和 checkpoint。它与前后阶段的关系见 [项目路线图](ROADMAP.md)。
+下一阶段是字符级 Transformer，将在现有可复现训练流程之上加入 causal self-attention、multi-head attention、残差连接和 layer normalization。它与前后阶段的关系见 [项目路线图](ROADMAP.md)。
 
 ## Token 在当前项目中的位置
 
@@ -74,7 +75,7 @@ Tokenization 本身不是一种训练范式，而是把原始输入转换为模�
 python3 -m pytest -q
 ```
 
-分别运行五个已完成阶段：
+分别运行六个已完成阶段：
 
 ```bash
 python3 projects/01_logistic_regression/main.py
@@ -84,4 +85,5 @@ PYTHONPATH=projects/03_char_trigram python3 projects/03_char_trigram/train.py
 PYTHONPATH=projects/03_char_trigram python3 projects/03_char_trigram/generate.py
 python3 projects/04_char_tokenizer/demo.py
 PYTHONPATH=projects/05_token_mlp python3 projects/05_token_mlp/train.py
+PYTHONPATH=projects/06_training_engineering python3 projects/06_training_engineering/compare_optimizers.py
 ```
