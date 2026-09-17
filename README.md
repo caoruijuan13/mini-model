@@ -15,16 +15,17 @@
 | [05 Token MLP](projects/05_token_mlp/) | 已完成 | embedding、隐藏层、反向传播、梯度下降和自回归生成 | 11 个测试；最佳验证 perplexity `16.681468` |
 | [06 训练工程基础](projects/06_training_engineering/) | 已完成 | mini-batch、SGD/Adam、early stopping、checkpoint 和可复现训练 | 11 个测试；中断恢复与连续训练逐元素一致 |
 | [07 字符级 Transformer](projects/07_char_transformer/) | 已完成 | causal attention、多层 block、手写梯度、训练、验证选择与生成 | 27 个测试；最佳验证 perplexity `17.283519`；测试 perplexity `21.441981` |
+| [08 PyTorch 模型实践](projects/08_pytorch_transformer/) | 进行中 | 复用 07 数据；已有模型前向、保存加载与训练入口，验证选择仍待修正 | 10 个测试通过；最佳验证参数恢复尚未验收 |
 
 “已完成”表示当前阶段形成了独立代码、设计说明、运行报告和自动化测试；它只代表教学项目的当前验收，不代表生产模型能力。
 
 当前全量测试结果：
 
 ```text
-70 passed
+80 passed
 ```
 
-阶段 07 已有固定配置下的训练、验证与测试报告。接下来依次是 **08 PyTorch 模型实践 → 09 手写最小 BPE → 10 推理与服务化**；不设置非正式的“07.5”。阶段 07 的短语料和单 seed 指标仅是教学证据，不能外推泛化或生成质量。完整边界见 [阶段 07 运行报告](projects/07_char_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
+阶段 07 已有固定配置下的训练、验证与测试报告。08 的训练入口已能运行，但验证集选参和最佳权重恢复尚未正确实现，当前输出不能作为阶段 08 的最终实验结果；之后依次是 **09 手写最小 BPE → 10 推理与服务化**，不设置非正式的“07.5”。阶段 07 的短语料和单 seed 指标仅是教学证据，不能外推泛化或生成质量。完整边界见 [阶段 07 运行报告](projects/07_char_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
 
 ## Token 在当前项目中的位置
 
@@ -89,3 +90,5 @@ PYTHONPATH=projects/05_token_mlp python3 projects/05_token_mlp/train.py
 PYTHONPATH=projects/06_training_engineering python3 projects/06_training_engineering/compare_optimizers.py
 python3 -m projects.07_char_transformer.train
 ```
+
+阶段 08 的学习骨架与待实现项目见 [08 README](projects/08_pytorch_transformer/README.md)。
