@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 from importlib import import_module
 import json
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import numpy as np
@@ -53,6 +54,8 @@ class TrainingOutcome:
     best_step: int
     completed_step: int
     stopped_early: bool
+    elapsed_seconds: float
+    history: list[dict[str, float | int]]
 
 
 def train_model(
@@ -63,21 +66,22 @@ def train_model(
     valid_data: tuple[np.ndarray, np.ndarray],
 ) -> TrainingOutcome:
     """Train on train_data, select on valid_data; never inspect test_data here."""
-    # convert NumPy IDs to torch.long, create model and optimizer.
-    # For each batch: optimizer.zero_grad(), forward, cross_entropy on
-    # flattened logits/targets, loss.backward(), optimizer.step().
-    # Evaluate under torch.no_grad() in model.eval() mode. Copy the best
-    # state_dict and restore it before returning.
     torch.manual_seed(training_config.seed)
     model = TorchCharTransformer(model_config)
-    best_params = model.state_dict()
-    
-    initial_train_loss = float(model.loss(*to_tensors(train_data)).item())
-    initial_valid_loss = float(model.loss(*to_tensors(valid_data)).item())
+    train_tensors = to_tensors(train_data)
+    valid_tensors = to_tensors(valid_data)
+    model.eval()
+    with torch.no_grad():
+        initial_train_loss = float(model.loss(*train_tensors).item())
+        initial_valid_loss = float(model.loss(*valid_tensors).item())
+    if not np.isfinite(initial_train_loss) or not np.isfinite(initial_valid_loss):
+        raise FloatingPointError("non-finite initial loss")
+    best_params = copy.deepcopy(model.state_dict())
     best_valid_loss = initial_valid_loss
     best_step = 0
     stale_count = 0
     stopped_early = False
+    history: list[dict[str, float | int]] = []
 
     optimizer = torch.optim.Adam(
         model.parameters(),
@@ -88,7 +92,8 @@ def train_model(
         *train_data, batch_size=training_config.batch_size, seed=training_config.seed
     )
     
-    for step in range(1, training_config.max_steps+1):
+    started = perf_counter()
+    for step in range(1, training_config.max_steps + 1):
         model.train()
         # zero out gradients of above step
         optimizer.zero_grad(set_to_none=True)
@@ -104,7 +109,16 @@ def train_model(
 
         model.eval()
         with torch.no_grad():
-            valid_loss = float(model.loss(*to_tensors(valid_data)).item())
+            train_loss = float(model.loss(*train_tensors).item())
+            valid_loss = float(model.loss(*valid_tensors).item())
+        if not np.isfinite(train_loss) or not np.isfinite(valid_loss):
+            raise FloatingPointError("non-finite training or validation loss")
+        history.append({
+            "step": step,
+            "batch_loss": float(loss.detach().item()),
+            "train_loss": train_loss,
+            "valid_loss": valid_loss,
+        })
 
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
@@ -114,11 +128,13 @@ def train_model(
         else:
             stale_count += 1
 
-        if stale_count >= training_config.patience_evaluations:
+        if stale_count >= training_config.patience_evaluations and step < training_config.max_steps:
             stopped_early = True
             break
 
+    elapsed_seconds = perf_counter() - started
     model.load_state_dict(best_params)
+    model.eval()
 
     return TrainingOutcome(
         model=model,
@@ -128,6 +144,8 @@ def train_model(
         best_step=best_step,
         completed_step=step,
         stopped_early=stopped_early,
+        elapsed_seconds=elapsed_seconds,
+        history=history,
     )
 
 def to_tensors(
@@ -163,7 +181,7 @@ def train_and_evaluate(
         train_loss = float(model.loss(*to_tensors(train_data)).item())
         valid_loss = float(model.loss(*to_tensors(valid_data)).item())
         test_loss = float(model.loss(*to_tensors(test_data)).item())
-    model.save(model_path)
+    model.save(model_path, tokenizer=tokenizer)
 
     bos_id = tokenizer.token_to_id[tokenizer.bos_token]
     eos_id = tokenizer.token_to_id[tokenizer.eos_token]
@@ -191,6 +209,8 @@ def train_and_evaluate(
         "valid_perplexity": float(np.exp(valid_loss)),
         "test_perplexity": float(np.exp(test_loss)),
         "generated_text": tokenizer.decode(generated_ids, skip_special_tokens=True),
+        "elapsed_seconds": outcome.elapsed_seconds,
+        "history": outcome.history,
     }
     output_path = Path(report_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)

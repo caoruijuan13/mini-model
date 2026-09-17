@@ -1,12 +1,15 @@
-"""PyTorch model exercise: fill the modules and forward paths yourself."""
+"""PyTorch implementation of the stage 07 causal character Transformer."""
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 import torch
 from torch import nn
+
+from projects.tokenization import CharTokenizer
 
 
 @dataclass(frozen=True)
@@ -40,15 +43,13 @@ class CausalSelfAttention(nn.Module):
     def __init__(self, config: TransformerConfig) -> None:
         super().__init__()
         self.config = config
-        # register Q/K/V and output projections as nn.Module children.
-        self.qkv = nn.Linear(self.config.model_dim, 3 * self.config.model_dim)
-        self.output = nn.Linear(self.config.model_dim, self.config.model_dim)
+        # Stage 07's attention projections have no bias parameters.
+        self.qkv = nn.Linear(self.config.model_dim, 3 * self.config.model_dim, bias=False)
+        self.output = nn.Linear(self.config.model_dim, self.config.model_dim, bias=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # split heads, scale scores, apply causal mask, combine heads.
-        # You may use torch.nn.functional.scaled_dot_product_attention with
-        # is_causal=True, or implement the forward calculation explicitly.
-        B, T, D = x.shape
+        # Split heads, scale scores, mask future positions, and combine heads.
+        B, T, _ = x.shape
         head_nums = self.config.num_heads
         head_dim = self.config.head_dim
         q, k, v = self.qkv(x).chunk(3, dim=-1)
@@ -69,7 +70,6 @@ class TransformerBlock(nn.Module):
     def __init__(self, config: TransformerConfig) -> None:
         super().__init__()
         self.config = config
-        # register two LayerNorms, attention, and a feed-forward MLP.
         self.norm1 = nn.LayerNorm(self.config.model_dim)
         self.norm2 = nn.LayerNorm(self.config.model_dim)
         self.attention = CausalSelfAttention(config)
@@ -80,7 +80,6 @@ class TransformerBlock(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x + attention(norm1(x)); then x + mlp(norm2(x)).
         normed1 = x + self.attention(self.norm1(x))
         return normed1 + self.mlp(self.norm2(normed1))
 
@@ -90,8 +89,6 @@ class TorchCharTransformer(nn.Module):
     def __init__(self, config: TransformerConfig) -> None:
         super().__init__()
         self.config = config
-        # register token/position Embedding, ModuleList of blocks,
-        # final LayerNorm, and vocabulary projection.
         self.token_embedding = nn.Embedding(self.config.vocab_size, self.config.model_dim)
         self.position_embedding = nn.Embedding(self.config.block_size, self.config.model_dim)
         self.blocks = nn.ModuleList([
@@ -101,8 +98,6 @@ class TorchCharTransformer(nn.Module):
         self.vocab_projection = nn.Linear(self.config.model_dim, self.config.vocab_size)
 
     def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
-        # validate shape/range, add token and position embeddings,
-        # apply all blocks, and return logits (not softmax probabilities).
         if token_ids.ndim != 2 or token_ids.shape[0] < 1:
             raise ValueError("token_ids must have shape (B, T) with B >= 1")
         sequence_length = token_ids.shape[1]
@@ -120,28 +115,67 @@ class TorchCharTransformer(nn.Module):
         return logits
 
     def loss(self, token_ids: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        # validate shape/range, add token and position embeddings,
-        # apply all blocks, project to logits, and return loss.
         logits = self.forward(token_ids)
         loss = nn.functional.cross_entropy(logits.view(-1, logits.shape[-1]), targets.view(-1))
         return loss
 
-    def save(self, path: str | Path) -> None:
-        # save config and state_dict for inference; document tokenizer
-        # matching. Do not save a pickled whole model object.
+    def save(self, path: str | Path, *, tokenizer: CharTokenizer | None = None) -> None:
+        """Save inference weights, config, and optionally their exact vocabulary."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save({
+        payload = {
             "config": asdict(self.config),
             "state_dict": self.state_dict(),
-        }, path)
+        }
+        if tokenizer is not None:
+            if tokenizer.vocab_size != self.config.vocab_size:
+                raise ValueError("tokenizer vocabulary size does not match model")
+            payload["tokenizer"] = self._tokenizer_spec(tokenizer)
+        torch.save(payload, path)
+
+    @staticmethod
+    def _tokenizer_spec(tokenizer: CharTokenizer) -> dict[str, object]:
+        return {
+            "tokens": list(tokenizer.tokens),
+            "unk_token": tokenizer.unk_token,
+            "bos_token": tokenizer.bos_token,
+            "eos_token": tokenizer.eos_token,
+        }
 
     @classmethod
-    def load(cls, path: str | Path) -> TorchCharTransformer:
-        # reconstruct config/model and load state_dict.
-        checkpoint = torch.load(path, map_location="cpu")
+    def _from_checkpoint(cls, checkpoint: dict[str, Any]) -> TorchCharTransformer:
         config = TransformerConfig(**checkpoint["config"])
         model = cls(config)
         model.load_state_dict(checkpoint["state_dict"])
         model.eval()
         return model
+
+    @classmethod
+    def load(
+        cls, path: str | Path, *, tokenizer: CharTokenizer | None = None
+    ) -> TorchCharTransformer:
+        """Load inference weights; reject a supplied mismatched tokenizer."""
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+        if tokenizer is not None and checkpoint.get("tokenizer") != cls._tokenizer_spec(tokenizer):
+            raise ValueError("tokenizer does not match the saved model")
+        return cls._from_checkpoint(checkpoint)
+
+    @classmethod
+    def load_with_tokenizer(
+        cls, path: str | Path
+    ) -> tuple[TorchCharTransformer, CharTokenizer]:
+        """Load a self-contained inference bundle, including token-ID mapping."""
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+        spec = checkpoint.get("tokenizer")
+        if spec is None:
+            raise ValueError("model file does not contain a tokenizer")
+        tokenizer = CharTokenizer(
+            tokens=tuple(spec["tokens"]),
+            unk_token=spec["unk_token"],
+            bos_token=spec["bos_token"],
+            eos_token=spec["eos_token"],
+        )
+        model = cls._from_checkpoint(checkpoint)
+        if tokenizer.vocab_size != model.config.vocab_size:
+            raise ValueError("saved tokenizer vocabulary size does not match model")
+        return model, tokenizer

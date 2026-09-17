@@ -2,7 +2,7 @@
 
 本项目采用“输入 → 模型 → 输出”的方式，一次学习一个问题，通过手写实现、对照实验和自动化测试逐步理解机器学习与语言模型。
 
-当前已经完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP、训练工程基础和字符级 Transformer 七个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
+当前已完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP、训练工程基础、字符级 Transformer 和 PyTorch 模型实践八个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
 
 ## 当前状态
 
@@ -15,17 +15,17 @@
 | [05 Token MLP](projects/05_token_mlp/) | 已完成 | embedding、隐藏层、反向传播、梯度下降和自回归生成 | 11 个测试；最佳验证 perplexity `16.681468` |
 | [06 训练工程基础](projects/06_training_engineering/) | 已完成 | mini-batch、SGD/Adam、early stopping、checkpoint 和可复现训练 | 11 个测试；中断恢复与连续训练逐元素一致 |
 | [07 字符级 Transformer](projects/07_char_transformer/) | 已完成 | causal attention、多层 block、手写梯度、训练、验证选择与生成 | 27 个测试；最佳验证 perplexity `17.283519`；测试 perplexity `21.441981` |
-| [08 PyTorch 模型实践](projects/08_pytorch_transformer/) | 进行中 | 复用 07 数据；已有模型前向、保存加载与训练入口，验证选择仍待修正 | 10 个测试通过；最佳验证参数恢复尚未验收 |
+| [08 PyTorch 模型实践](projects/08_pytorch_transformer/) | 已完成 | PyTorch 前向、autograd、验证选择、生成和自包含推理文件 | 17 个测试；验证 perplexity `16.879234`；测试 perplexity `17.493177` |
 
 “已完成”表示当前阶段形成了独立代码、设计说明、运行报告和自动化测试；它只代表教学项目的当前验收，不代表生产模型能力。
 
 当前全量测试结果：
 
 ```text
-80 passed
+87 passed
 ```
 
-阶段 07 已有固定配置下的训练、验证与测试报告。08 的训练入口已能运行，但验证集选参和最佳权重恢复尚未正确实现，当前输出不能作为阶段 08 的最终实验结果；之后依次是 **09 手写最小 BPE → 10 推理与服务化**，不设置非正式的“07.5”。阶段 07 的短语料和单 seed 指标仅是教学证据，不能外推泛化或生成质量。完整边界见 [阶段 07 运行报告](projects/07_char_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
+阶段 07 和 08 均已有固定配置下的训练、验证与测试报告。接下来依次是 **09 手写最小 BPE → 10 推理与服务化**，不设置非正式的“07.5”。两阶段的短语料、单 seed 指标仅是教学证据，不能外推泛化或生成质量，也不能据此判断框架优劣。完整边界见 [阶段 07 运行报告](projects/07_char_transformer/run_report.md)、[阶段 08 运行报告](projects/08_pytorch_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
 
 ## Token 在当前项目中的位置
 
@@ -77,7 +77,7 @@ Tokenization 本身不是一种训练范式，而是把原始输入转换为模�
 python3 -m pytest -q
 ```
 
-分别运行七个已完成阶段：
+分别运行八个已完成阶段：
 
 ```bash
 python3 projects/01_logistic_regression/main.py
@@ -89,6 +89,7 @@ python3 projects/04_char_tokenizer/demo.py
 PYTHONPATH=projects/05_token_mlp python3 projects/05_token_mlp/train.py
 PYTHONPATH=projects/06_training_engineering python3 projects/06_training_engineering/compare_optimizers.py
 python3 -m projects.07_char_transformer.train
+python3 -m projects.08_pytorch_transformer.train
 ```
 
-阶段 08 的学习骨架与待实现项目见 [08 README](projects/08_pytorch_transformer/README.md)。
+阶段 08 的 PyTorch 模型、实验和推理文件说明见 [08 README](projects/08_pytorch_transformer/README.md)。
