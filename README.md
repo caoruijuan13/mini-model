@@ -24,7 +24,7 @@
 70 passed
 ```
 
-阶段 07 已有固定配置下的训练、验证与测试报告，当前下一阶段是 subword tokenizer。阶段 07 的短语料和单 seed 指标仅是教学证据，不能外推泛化或生成质量。完整边界见 [阶段 07 运行报告](projects/07_char_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
+阶段 07 已有固定配置下的训练、验证与测试报告。接下来依次是 **08 PyTorch 模型实践 → 09 手写最小 BPE → 10 推理与服务化**；不设置非正式的“07.5”。阶段 07 的短语料和单 seed 指标仅是教学证据，不能外推泛化或生成质量。完整边界见 [阶段 07 运行报告](projects/07_char_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
 
 ## Token 在当前项目中的位置
 
