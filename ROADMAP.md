@@ -44,8 +44,8 @@
 | 03 字符 trigram | [x] | 理解更长上下文、稀疏性和 backoff | 测试、验证集调参与基线对照已完成 |
 | 04 显式字符 Tokenizer | [x] | 建立稳定的文本与 token ID 边界 | encode/decode、未知字符和持久化验收通过 |
 | 05 Token MLP | [x] | 从计数表进入 embedding 和神经网络 | 反向传播正确并完成 trigram 对照 |
-| 06 训练工程 | [ ] | 建立可恢复、可复现的训练流程 | mini-batch、Adam、checkpoint 验收通过 |
-| 07 字符级 Transformer | [ ] | 理解 causal self-attention 和自回归生成 | mask、张量形状、训练和生成测试通过 |
+| 06 训练工程 | [x] | 建立可恢复、可复现的训练流程 | mini-batch、Adam、checkpoint 验收通过 |
+| 07 字符级 Transformer | [x] | 理解 causal self-attention 和自回归生成 | mask、梯度、训练、保存加载和生成测试通过 |
 | 08 Subword Tokenizer | [ ] | 理解现代大模型的子词 token | 完成字符与 subword 的可重复对照 |
 | 09 推理与服务化 | [ ] | 分离训练和运行时，验证性能边界 | 批量/流式推理及性能报告完成 |
 
@@ -252,7 +252,7 @@ token ID
 
 阶段状态：
 
-- [ ] 阶段完成
+- [x] 阶段完成
 
 ### 目的
 
@@ -260,23 +260,28 @@ token ID
 
 ### 实现清单
 
-- [ ] positional information；
-- [ ] 单头 causal self-attention；
-- [ ] causal mask；
-- [ ] multi-head attention；
-- [ ] residual connection；
-- [ ] layer normalization；
-- [ ] Transformer block；
-- [ ] 多层堆叠与自回归生成。
+- [x] positional information；
+- [x] 单头 causal self-attention；
+- [x] causal mask；
+- [x] multi-head attention；
+- [x] residual connection；
+- [x] layer normalization；
+- [x] Transformer block；
+- [x] 多层堆叠与自回归生成；
+- [x] 所有位置的交叉熵、手写反向传播和参数梯度；
+- [x] 推理模型的配置与参数保存、加载；
+- [x] mini-batch 训练、验证集选择与最终测试评估。
 
 ### 验收清单
 
-- [ ] attention、head、batch 和 sequence 维度有独立测试；
-- [ ] causal mask 能证明当前位置不能读取未来 token；
-- [ ] 单样本与 batch 输入行为一致；
-- [ ] 小数据过拟合测试可以通过；
-- [ ] 保存、加载后输出一致；
-- [ ] 训练与验证 loss、perplexity 和生成样例分别解释。
+- [x] attention、head、batch 和 sequence 维度有独立测试；
+- [x] causal mask 能证明当前位置不能读取未来 token；
+- [x] 单样本与 batch 输入行为一致；
+- [x] 关键参数梯度通过有限差分检查；
+- [x] 固定 seed 生成可复现，滚动上下文与 EOS 停止测试通过；
+- [x] 小数据过拟合测试可以通过；
+- [x] 保存、加载后输出一致；
+- [x] 训练与验证 loss、perplexity 和生成样例分别解释。
 
 ### 暂不包含
 
@@ -367,4 +372,4 @@ subword token：词表更大、序列更短
 
 ## 当前执行点
 
-当前执行点是阶段 07。阶段 06 已在不改变 Token MLP 语义的前提下完成 mini-batch、SGD/Adam、early stopping、checkpoint 精确恢复和训练可观测性；阶段 07 将加入字符级 causal self-attention 和 Transformer block。
+阶段 07 的教学闭环已完成：字符级 causal self-attention、Transformer block、手写反向传播、mini-batch 训练、验证集最佳参数恢复、推理模型保存加载和自回归生成均有测试；固定配置下的真实语料指标与限制见阶段 07 运行报告。下一执行点是阶段 08 的 subword tokenizer；07 的推理模型文件不包含可恢复训练状态，也不证明外部语料泛化能力。

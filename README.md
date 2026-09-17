@@ -2,7 +2,7 @@
 
 本项目采用“输入 → 模型 → 输出”的方式，一次学习一个问题，通过手写实现、对照实验和自动化测试逐步理解机器学习与语言模型。
 
-当前已经完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP 和训练工程基础六个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
+当前已经完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP、训练工程基础和字符级 Transformer 七个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
 
 ## 当前状态
 
@@ -14,16 +14,17 @@
 | [04 显式字符 Tokenizer](projects/04_char_tokenizer/) | 已完成 | vocabulary、特殊 token、encode/decode、Token Bigram 采样 | 9 个测试；只使用训练文本建立词表 |
 | [05 Token MLP](projects/05_token_mlp/) | 已完成 | embedding、隐藏层、反向传播、梯度下降和自回归生成 | 11 个测试；最佳验证 perplexity `16.681468` |
 | [06 训练工程基础](projects/06_training_engineering/) | 已完成 | mini-batch、SGD/Adam、early stopping、checkpoint 和可复现训练 | 11 个测试；中断恢复与连续训练逐元素一致 |
+| [07 字符级 Transformer](projects/07_char_transformer/) | 已完成 | causal attention、多层 block、手写梯度、训练、验证选择与生成 | 27 个测试；最佳验证 perplexity `17.283519`；测试 perplexity `21.441981` |
 
 “已完成”表示当前阶段形成了独立代码、设计说明、运行报告和自动化测试；它只代表教学项目的当前验收，不代表生产模型能力。
 
 当前全量测试结果：
 
 ```text
-43 passed
+70 passed
 ```
 
-下一阶段是字符级 Transformer，将在现有可复现训练流程之上加入 causal self-attention、multi-head attention、残差连接和 layer normalization。它与前后阶段的关系见 [项目路线图](ROADMAP.md)。
+阶段 07 已有固定配置下的训练、验证与测试报告，当前下一阶段是 subword tokenizer。阶段 07 的短语料和单 seed 指标仅是教学证据，不能外推泛化或生成质量。完整边界见 [阶段 07 运行报告](projects/07_char_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
 
 ## Token 在当前项目中的位置
 
@@ -61,7 +62,7 @@ Token 是模型处理文本时使用的离散单位。它可以是一个字符�
 | 学习范式 | 核心特征 | 当前项目 | 后续方向 |
 | --- | --- | --- | --- |
 | 监督学习 | 数据明确提供输入和目标标签 | 01 逻辑回归 | 多分类、回归、结构化预测 |
-| 自监督学习 | 从原始数据自动构造预测目标 | 02 bigram、03 trigram、05 Token MLP | Transformer、掩码建模 |
+| 自监督学习 | 从原始数据自动构造预测目标 | 02 bigram、03 trigram、05 Token MLP、07 Transformer | 掩码建模 |
 | 无监督学习 | 没有明确标签，学习数据结构或分布 | 暂无 | 聚类、降维、密度估计、表示学习 |
 | 强化学习 | 根据环境奖励学习行动策略 | 暂无 | 多臂老虎机、价值函数、策略优化 |
 
@@ -75,7 +76,7 @@ Tokenization 本身不是一种训练范式，而是把原始输入转换为模�
 python3 -m pytest -q
 ```
 
-分别运行六个已完成阶段：
+分别运行七个已完成阶段：
 
 ```bash
 python3 projects/01_logistic_regression/main.py
@@ -86,4 +87,5 @@ PYTHONPATH=projects/03_char_trigram python3 projects/03_char_trigram/generate.py
 python3 projects/04_char_tokenizer/demo.py
 PYTHONPATH=projects/05_token_mlp python3 projects/05_token_mlp/train.py
 PYTHONPATH=projects/06_training_engineering python3 projects/06_training_engineering/compare_optimizers.py
+python3 -m projects.07_char_transformer.train
 ```
