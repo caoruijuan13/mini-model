@@ -2,7 +2,7 @@
 
 本项目采用“输入 → 模型 → 输出”的方式，一次学习一个问题，通过手写实现、对照实验和自动化测试逐步理解机器学习与语言模型。
 
-当前已完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP、训练工程基础、字符级 Transformer 和 PyTorch 模型实践八个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
+当前已完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP、训练工程基础、字符级 Transformer、PyTorch 模型实践和手写 Subword Tokenizer 九个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
 
 ## 当前状态
 
@@ -16,16 +16,17 @@
 | [06 训练工程基础](projects/06_training_engineering/) | 已完成 | mini-batch、SGD/Adam、early stopping、checkpoint 和可复现训练 | 11 个测试；中断恢复与连续训练逐元素一致 |
 | [07 字符级 Transformer](projects/07_char_transformer/) | 已完成 | causal attention、多层 block、手写梯度、训练、验证选择与生成 | 27 个测试；最佳验证 perplexity `17.283519`；测试 perplexity `21.441981` |
 | [08 PyTorch 模型实践](projects/08_pytorch_transformer/) | 已完成 | PyTorch 前向、autograd、验证选择、生成和自包含推理文件 | 17 个测试；验证 perplexity `16.879234`；测试 perplexity `17.493177` |
+| [09 手写 Subword Tokenizer](projects/09_subword_tokenizer/) | 已完成 | 字符初始化 BPE、规则编码、特殊 token 与版本化保存加载 | 26 个测试；训练集 token 数 `521→299`，验证集 `65→52`，测试集 `66→52` |
 
 “已完成”表示当前阶段形成了独立代码、设计说明、运行报告和自动化测试；它只代表教学项目的当前验收，不代表生产模型能力。
 
 当前全量测试结果：
 
 ```text
-87 passed
+113 passed
 ```
 
-阶段 07 和 08 均已有固定配置下的训练、验证与测试报告。接下来依次是 **09 手写最小 BPE → 10 推理与服务化**，不设置非正式的“07.5”。两阶段的短语料、单 seed 指标仅是教学证据，不能外推泛化或生成质量，也不能据此判断框架优劣。完整边界见 [阶段 07 运行报告](projects/07_char_transformer/run_report.md)、[阶段 08 运行报告](projects/08_pytorch_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
+阶段 07 和 08 均已有固定配置下的训练、验证与测试报告；09 已完成字符与 BPE tokenizer 的独立对照，结果和未知字符边界见 [阶段 09 运行报告](projects/09_subword_tokenizer/run_report.md)。之后是 **10 推理与服务化**，不设置非正式的“07.5”。07/08 的短语料、单 seed 指标仅是教学证据；09 的 token 数下降也不能证明模型 loss 或生成质量改善。完整边界见 [阶段 07 运行报告](projects/07_char_transformer/run_report.md)、[阶段 08 运行报告](projects/08_pytorch_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
 
 ## Token 在当前项目中的位置
 
@@ -44,9 +45,9 @@ Token 是模型处理文本时使用的离散单位。它可以是一个字符�
 
 | Token 概念 | 当前变量 | 含义 |
 | --- | --- | --- |
-| token | `character`、`token` | 当前阶段仍以单个字符作为 token |
-| vocabulary | `tokenizer.tokens` | Tokenizer 支持的字符和特殊 token |
-| token → token ID | `tokenizer.token_to_id` | 字符或特殊 token 到整数编号的映射 |
+| token | `character`、`token` | 02–08 的语言模型主要用字符；09 的 BPE 还可用合并后的字符片段 |
+| vocabulary | `tokenizer.tokens` | 字符、特殊 token，以及 09 中按规则新增的片段 |
+| token → token ID | `tokenizer.token_to_id`、`base_tokens` | 字符 tokenizer 显式映射字符；09 用基础词表位置和有序 merge 分配 ID |
 | token ID 序列 | `train_ids` 等 | 模型实际接收的离散整数序列 |
 | 上下文/目标 token ID | `context_ids`、`targets` | Token MLP 的自监督训练样本 |
 | token embedding | `params["embedding"]` | 由 token ID 查表获得并通过梯度学习的浮点向量 |
@@ -77,7 +78,7 @@ Tokenization 本身不是一种训练范式，而是把原始输入转换为模�
 python3 -m pytest -q
 ```
 
-分别运行八个已完成阶段：
+分别运行九个已完成阶段：
 
 ```bash
 python3 projects/01_logistic_regression/main.py
@@ -90,6 +91,8 @@ PYTHONPATH=projects/05_token_mlp python3 projects/05_token_mlp/train.py
 PYTHONPATH=projects/06_training_engineering python3 projects/06_training_engineering/compare_optimizers.py
 python3 -m projects.07_char_transformer.train
 python3 -m projects.08_pytorch_transformer.train
+python3 -m projects.09_subword_tokenizer.compare
 ```
 
 阶段 08 的 PyTorch 模型、实验和推理文件说明见 [08 README](projects/08_pytorch_transformer/README.md)。
+阶段 09 的 BPE 算法、手算顺序与对照结果见 [09 README](projects/09_subword_tokenizer/README.md)。
