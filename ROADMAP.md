@@ -334,7 +334,7 @@ token ID
 
 - [x] 阶段完成
 
-已完成 pair 统计、确定性选择、合并、规则编码、边界处理与版本化保存加载。当前阶段 `26 passed`，全仓库 `113 passed`；默认配置在同一语料切分上的字符/BPE token 数对照见 [09 运行报告](projects/09_subword_tokenizer/run_report.md)。
+已完成 pair 统计、确定性选择、合并、规则编码、边界处理与版本化保存加载。当前阶段 `26 passed`，全仓库 `113 passed`；默认配置在同一语料切分上的字符/BPE token 数对照见 [09 运行报告](projects/stage09_subword_tokenizer/run_report.md)。
 
 ### 目的
 
