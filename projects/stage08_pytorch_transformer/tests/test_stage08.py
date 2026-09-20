@@ -168,6 +168,33 @@ def test_inference_bundle_preserves_and_checks_tokenizer(tmp_path):
         )
 
 
+@pytest.mark.parametrize(
+    ("field", "invalid_value", "message"),
+    [
+        ("format", "another-format", "unsupported model format"),
+        ("version", 99, "unsupported model version"),
+    ],
+)
+def test_all_load_paths_reject_incompatible_bundle_envelope(
+    tmp_path, field, invalid_value, message
+):
+    tokenizer = CharTokenizer.from_text("ab")
+    model = model_module.TorchCharTransformer(
+        model_module.TransformerConfig(vocab_size=tokenizer.vocab_size)
+    )
+    valid_path = tmp_path / "valid.pt"
+    invalid_path = tmp_path / "invalid.pt"
+    model.save(valid_path, tokenizer=tokenizer)
+    payload = torch.load(valid_path, weights_only=True)
+    payload[field] = invalid_value
+    torch.save(payload, invalid_path)
+
+    with pytest.raises(ValueError, match=message):
+        model_module.TorchCharTransformer.load(invalid_path)
+    with pytest.raises(ValueError, match=message):
+        model_module.TorchCharTransformer.load_with_tokenizer(invalid_path)
+
+
 def test_generation_from_bos_is_reproducible_and_restores_mode():
     torch.manual_seed(11)
     model = model_module.TorchCharTransformer(
