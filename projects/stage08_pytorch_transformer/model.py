@@ -11,6 +11,8 @@ from torch import nn
 
 from projects.tokenization import CharTokenizer
 
+FORMAT_NAME = "mini-model-char-transformer"
+FORMAT_VERSION = 1
 
 @dataclass(frozen=True)
 class TransformerConfig:
@@ -124,6 +126,8 @@ class TorchCharTransformer(nn.Module):
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
+            "format": FORMAT_NAME,
+            "version": FORMAT_VERSION,
             "config": asdict(self.config),
             "state_dict": self.state_dict(),
         }
@@ -143,10 +147,10 @@ class TorchCharTransformer(nn.Module):
         }
 
     @classmethod
-    def _from_checkpoint(cls, checkpoint: dict[str, Any]) -> TorchCharTransformer:
-        config = TransformerConfig(**checkpoint["config"])
+    def _from_payload(cls, payload: dict[str, Any]) -> TorchCharTransformer:
+        config = TransformerConfig(**payload["config"])
         model = cls(config)
-        model.load_state_dict(checkpoint["state_dict"])
+        model.load_state_dict(payload["state_dict"])
         model.eval()
         return model
 
@@ -155,18 +159,22 @@ class TorchCharTransformer(nn.Module):
         cls, path: str | Path, *, tokenizer: CharTokenizer | None = None
     ) -> TorchCharTransformer:
         """Load inference weights; reject a supplied mismatched tokenizer."""
-        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
-        if tokenizer is not None and checkpoint.get("tokenizer") != cls._tokenizer_spec(tokenizer):
+        payload = torch.load(path, map_location="cpu", weights_only=True)
+        if payload["format"] != FORMAT_NAME:
+            raise ValueError("model file is not a valid inference bundle")
+        if payload["version"] != FORMAT_VERSION:
+            raise ValueError("model file is not a valid inference bundle")
+        if tokenizer is not None and payload.get("tokenizer") != cls._tokenizer_spec(tokenizer):
             raise ValueError("tokenizer does not match the saved model")
-        return cls._from_checkpoint(checkpoint)
+        return cls._from_payload(payload)
 
     @classmethod
     def load_with_tokenizer(
         cls, path: str | Path
     ) -> tuple[TorchCharTransformer, CharTokenizer]:
         """Load a self-contained inference bundle, including token-ID mapping."""
-        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
-        spec = checkpoint.get("tokenizer")
+        payload = torch.load(path, map_location="cpu", weights_only=True)
+        spec = payload.get("tokenizer")
         if spec is None:
             raise ValueError("model file does not contain a tokenizer")
         tokenizer = CharTokenizer(
@@ -175,7 +183,7 @@ class TorchCharTransformer(nn.Module):
             bos_token=spec["bos_token"],
             eos_token=spec["eos_token"],
         )
-        model = cls._from_checkpoint(checkpoint)
+        model = cls._from_payload(payload)
         if tokenizer.vocab_size != model.config.vocab_size:
             raise ValueError("saved tokenizer vocabulary size does not match model")
         return model, tokenizer
