@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 import math
 
 import torch
@@ -10,7 +10,7 @@ import torch
 from .model import TorchCharTransformer
 
 
-def generate_ids(
+def iter_generated_ids(
     model: TorchCharTransformer,
     initial_ids: Sequence[int],
     *,
@@ -19,8 +19,8 @@ def generate_ids(
     seed: int = 7,
     temperature: float = 1.0,
     top_k: int | None = None,
-) -> list[int]:
-    """Return the prompt plus sampled IDs; stop at EOS or the token limit."""
+) -> Iterator[int]:
+    """Yield sampled IDs one at a time, including EOS when selected."""
     vocab_size = model.config.vocab_size
     if not initial_ids:
         raise ValueError("initial_ids must contain at least one token ID")
@@ -37,18 +37,18 @@ def generate_ids(
 
     generated = list(initial_ids)
     if generated[-1] == eos_id:
-        return generated
+        return
 
     rng = torch.Generator(device="cpu").manual_seed(seed)
     device = next(model.parameters()).device
-    was_training = model.training
-    model.eval()
-    try:
-        with torch.inference_mode():
-            for _ in range(max_new_tokens):
-                context = torch.tensor(
-                    [generated[-model.config.block_size:]], dtype=torch.long, device=device
-                )
+    for _ in range(max_new_tokens):
+        context = torch.tensor(
+            [generated[-model.config.block_size:]], dtype=torch.long, device=device
+        )
+        was_training = model.training
+        model.eval()
+        try:
+            with torch.inference_mode():
                 logits = model(context)
                 expected_shape = (1, context.shape[1], vocab_size)
                 if logits.shape != expected_shape:
@@ -63,10 +63,39 @@ def generate_ids(
                     filtered[top_indices] = next_logits[top_indices]
                     next_logits = filtered
                 probabilities = torch.softmax(next_logits, dim=-1)
-                next_id = int(torch.multinomial(probabilities, 1, generator=rng).item())
-                generated.append(next_id)
-                if next_id == eos_id:
-                    break
-    finally:
-        model.train(was_training)
+                next_id = int(
+                    torch.multinomial(probabilities, 1, generator=rng).item()
+                )
+        finally:
+            model.train(was_training)
+
+        generated.append(next_id)
+        yield next_id
+        if next_id == eos_id:
+            return
+
+
+def generate_ids(
+    model: TorchCharTransformer,
+    initial_ids: Sequence[int],
+    *,
+    eos_id: int,
+    max_new_tokens: int = 100,
+    seed: int = 7,
+    temperature: float = 1.0,
+    top_k: int | None = None,
+) -> list[int]:
+    """Return the prompt plus sampled IDs; stop at EOS or the token limit."""
+    generated = list(initial_ids)
+    generated.extend(
+        iter_generated_ids(
+            model,
+            initial_ids,
+            eos_id=eos_id,
+            max_new_tokens=max_new_tokens,
+            seed=seed,
+            temperature=temperature,
+            top_k=top_k,
+        )
+    )
     return generated
