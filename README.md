@@ -2,7 +2,7 @@
 
 本项目采用“输入 → 模型 → 输出”的方式，一次学习一个问题，通过手写实现、对照实验和自动化测试逐步理解机器学习与语言模型。
 
-当前已完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP、训练工程基础、字符级 Transformer、PyTorch 模型实践和手写 Subword Tokenizer 九个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
+当前已完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP、训练工程基础、字符级 Transformer、PyTorch 模型实践、手写 Subword Tokenizer，以及评估、推理与服务化十个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
 
 编号阶段的目录统一以 `stageXX_` 开头，因此可以使用普通 Python 导入语句，例如 `from projects.stage08_pytorch_transformer.model import TorchCharTransformer`。`projects/tokenization` 是跨阶段共享包，不属于编号阶段。
 
@@ -17,18 +17,19 @@
 | [05 Token MLP](projects/stage05_token_mlp/) | 已完成 | embedding、隐藏层、反向传播、梯度下降和自回归生成 | 11 个测试；最佳验证 perplexity `16.681468` |
 | [06 训练工程基础](projects/stage06_training_engineering/) | 已完成 | mini-batch、SGD/Adam、early stopping、checkpoint 和可复现训练 | 11 个测试；中断恢复与连续训练逐元素一致 |
 | [07 字符级 Transformer](projects/stage07_char_transformer/) | 已完成 | causal attention、多层 block、手写梯度、训练、验证选择与生成 | 27 个测试；最佳验证 perplexity `17.283519`；测试 perplexity `21.441981` |
-| [08 PyTorch 模型实践](projects/stage08_pytorch_transformer/) | 已完成 | PyTorch 前向、autograd、验证选择、生成和自包含推理文件 | 17 个测试；验证 perplexity `16.879234`；测试 perplexity `17.493177` |
+| [08 PyTorch 模型实践](projects/stage08_pytorch_transformer/) | 已完成 | PyTorch 前向、autograd、验证选择、生成和自包含推理文件 | 19 个测试；验证 perplexity `16.879234`；测试 perplexity `17.493177` |
 | [09 手写 Subword Tokenizer](projects/stage09_subword_tokenizer/) | 已完成 | 字符初始化 BPE、规则编码、特殊 token 与版本化保存加载 | 26 个测试；训练集 token 数 `521→299`，验证集 `65→52`，测试集 `66→52` |
+| [10 评估、推理与服务化](projects/stage10_inference_serving/) | 已完成 | 版本化加载、评估、批量与流式生成、本地接口和性能测量 | 31 个测试；固定语料评估与当前环境实测报告 |
 
 “已完成”表示当前阶段形成了独立代码、设计说明、运行报告和自动化测试；它只代表教学项目的当前验收，不代表生产模型能力。
 
 当前全量测试结果：
 
 ```text
-113 passed
+146 passed
 ```
 
-阶段 07 和 08 均已有固定配置下的训练、验证与测试报告；09 已完成字符与 BPE tokenizer 的独立对照，结果和未知字符边界见 [阶段 09 运行报告](projects/stage09_subword_tokenizer/run_report.md)。之后是 **10 推理与服务化**，不设置非正式的“07.5”。07/08 的短语料、单 seed 指标仅是教学证据；09 的 token 数下降也不能证明模型 loss 或生成质量改善。完整边界见 [阶段 07 运行报告](projects/stage07_char_transformer/run_report.md)、[阶段 08 运行报告](projects/stage08_pytorch_transformer/run_report.md) 和 [项目路线图](ROADMAP.md)。
+阶段 07 和 08 均已有固定配置下的训练、验证与测试报告；09 已完成字符与 BPE tokenizer 的独立对照，结果和未知字符边界见 [阶段 09 运行报告](projects/stage09_subword_tokenizer/run_report.md)。**10 评估、推理与服务化** 已完成版本化加载、固定切分评估、单条与顺序批量生成、流式生成、本地命令行接口和当前环境性能报告。07/08 的短语料、单 seed 指标仅是教学证据；09 的 token 数下降也不能证明模型 loss 或生成质量改善；10 的 CPU 指标不能外推到大模型、GPU 或并发网络服务。完整边界见 [阶段 07 运行报告](projects/stage07_char_transformer/run_report.md)、[阶段 08 运行报告](projects/stage08_pytorch_transformer/run_report.md)、[阶段 10 运行报告](projects/stage10_inference_serving/run_report.md) 和 [项目路线图](ROADMAP.md)。
 
 ## Token 在当前项目中的位置
 
@@ -94,7 +95,10 @@ PYTHONPATH=projects/stage06_training_engineering python3 projects/stage06_traini
 python3 -m projects.stage07_char_transformer.train
 python3 -m projects.stage08_pytorch_transformer.train
 python3 -m projects.stage09_subword_tokenizer.compare
+python3 -m projects.stage10_inference_serving.report
+python3 -m projects.stage10_inference_serving.cli "We hold" --top-k 5
 ```
 
 阶段 08 的 PyTorch 模型、实验和推理文件说明见 [08 README](projects/stage08_pytorch_transformer/README.md)。
 阶段 09 的 BPE 算法、手算顺序与对照结果见 [09 README](projects/stage09_subword_tokenizer/README.md)。
+阶段 10 的评估、推理接口和性能报告见 [10 README](projects/stage10_inference_serving/README.md)。

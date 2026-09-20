@@ -1,4 +1,4 @@
-"""Stage 10 inference runtime; only the artifact loading path is implemented."""
+"""Stage 10 evaluation, generation, and benchmark runtime."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ class GenerationResult:
     input_text: str
     generated_text: str
     finish_reason: Literal["eos", "length"]
+    generated_token_count: int
 
 
 class InferenceRuntime:
@@ -66,15 +67,17 @@ class InferenceRuntime:
             temperature=temperature,
             top_k=top_k,
         )
+        new_ids = generated_ids[len(initial_ids) :]
         finish_reason = "length"
-        if eos_id in generated_ids:
-            generated_ids = generated_ids[: generated_ids.index(eos_id)]
+        if eos_id in new_ids:
+            new_ids = new_ids[: new_ids.index(eos_id)]
             finish_reason = "eos"
-        generated_text = self.tokenizer.decode(generated_ids[len(initial_ids) :])
+        generated_text = self.tokenizer.decode(new_ids)
         return GenerationResult(
             input_text=prompt,
             generated_text=generated_text,
             finish_reason=finish_reason,
+            generated_token_count=len(new_ids),
         )
 
     def generate_batch(
@@ -90,11 +93,11 @@ class InferenceRuntime:
         # Define per-request random seeds and EOS handling so
         # each result matches the corresponding single-request call.
         results = []
-        for prompt, seed in zip(prompts, [seed + i for i in range(len(prompts))]):
+        for index, prompt in enumerate(prompts):
             result = self.generate(
                 prompt,
                 max_new_tokens=max_new_tokens,
-                seed=seed,
+                seed=seed + index,
                 temperature=temperature,
                 top_k=top_k,
             )
@@ -159,12 +162,18 @@ class InferenceRuntime:
                         logits = self.model(context)
                         expected_shape = (1, context.shape[1], vocab_size)
                         if logits.shape != expected_shape:
-                            raise ValueError(f"model logits must have shape {expected_shape}")
+                            raise ValueError(
+                                f"model logits must have shape {expected_shape}"
+                            )
                         next_logits = logits[0, -1].float()
                         if not torch.isfinite(next_logits).all():
                             raise ValueError("model returned non-finite logits")
-                        target = torch.tensor([text_ids[target_index]], dtype=torch.long, device=device)
-                        loss = torch.nn.functional.cross_entropy(next_logits.unsqueeze(0), target, reduction="sum")
+                        target = torch.tensor(
+                            [text_ids[target_index]], dtype=torch.long, device=device
+                        )
+                        loss = torch.nn.functional.cross_entropy(
+                            next_logits.unsqueeze(0), target, reduction="sum"
+                        )
                         total_loss += float(loss.item())
                         target_count += 1
         finally:
@@ -187,11 +196,23 @@ class InferenceRuntime:
             raise ValueError("prompts must contain at least one prompt")
         if any(not isinstance(prompt, str) for prompt in prompts):
             raise TypeError("prompts must contain only strings")
-        if isinstance(max_new_tokens, bool) or not isinstance(max_new_tokens, int) or max_new_tokens <= 0:
+        if (
+            isinstance(max_new_tokens, bool)
+            or not isinstance(max_new_tokens, int)
+            or max_new_tokens <= 0
+        ):
             raise ValueError("max_new_tokens must be a positive integer")
-        if isinstance(warmup_runs, bool) or not isinstance(warmup_runs, int) or warmup_runs < 0:
+        if (
+            isinstance(warmup_runs, bool)
+            or not isinstance(warmup_runs, int)
+            or warmup_runs < 0
+        ):
             raise ValueError("warmup_runs must be a non-negative integer")
-        if isinstance(measured_runs, bool) or not isinstance(measured_runs, int) or measured_runs <= 0:
+        if (
+            isinstance(measured_runs, bool)
+            or not isinstance(measured_runs, int)
+            or measured_runs <= 0
+        ):
             raise ValueError("measured_runs must be a positive integer")
         return tuple(prompts)
 
@@ -237,13 +258,9 @@ class InferenceRuntime:
         # The first request is measured before warmup and kept separate from
         # the warmed latency distribution returned by benchmark().
         started = time.perf_counter()
-        first_result = runtime.generate(
-            workload[0], max_new_tokens=max_new_tokens
-        )
+        first_result = runtime.generate(workload[0], max_new_tokens=max_new_tokens)
         first_request_seconds = time.perf_counter() - started
-        first_request_generated_tokens = len(
-            runtime.tokenizer.encode(first_result.generated_text)
-        )
+        first_request_generated_tokens = first_result.generated_token_count
 
         warmed = runtime.benchmark(
             workload,
@@ -294,7 +311,7 @@ class InferenceRuntime:
             duration = time.perf_counter() - start
             durations.append(duration)
             generated_tokens += sum(
-                len(self.tokenizer.encode(result.generated_text)) for result in results
+                result.generated_token_count for result in results
             )
 
         sorted_durations = sorted(durations)
@@ -309,7 +326,9 @@ class InferenceRuntime:
         else:
             tokens_per_second = generated_tokens / total_duration
 
-        parameter_count = sum(parameter.numel() for parameter in self.model.parameters())
+        parameter_count = sum(
+            parameter.numel() for parameter in self.model.parameters()
+        )
         parameter_bytes = sum(
             parameter.numel() * parameter.element_size()
             for parameter in self.model.parameters()

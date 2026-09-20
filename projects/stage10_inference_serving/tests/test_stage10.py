@@ -6,6 +6,7 @@ import pytest
 import torch
 
 import projects.stage10_inference_serving.runtime as runtime_module
+import projects.stage10_inference_serving.cli as cli_module
 from projects.stage08_pytorch_transformer.model import (
     TorchCharTransformer,
     TransformerConfig,
@@ -82,6 +83,43 @@ def test_load_real_inference_bundle_without_training(tmp_path):
     assert runtime.tokenizer.tokens == tokenizer.tokens
 
 
+def test_cli_returns_structured_non_streaming_result(monkeypatch, capsys):
+    class FakeRuntime:
+        def generate(self, prompt, **options):
+            assert prompt == "ab"
+            assert options["top_k"] == 3
+            return runtime_module.GenerationResult(prompt, "c", "eos", 1)
+
+    monkeypatch.setattr(
+        cli_module.InferenceRuntime,
+        "load",
+        classmethod(lambda cls, path: FakeRuntime()),
+    )
+
+    assert cli_module.main(["ab", "--top-k", "3"]) == 0
+    assert capsys.readouterr().out == (
+        '{"input_text": "ab", "generated_text": "c", "finish_reason": "eos", '
+        '"generated_token_count": 1}\n'
+    )
+
+
+def test_cli_streams_fragments_without_json_wrapper(monkeypatch, capsys):
+    class FakeRuntime:
+        def stream_generate(self, prompt, **options):
+            assert prompt == "ab"
+            yield "c"
+            yield "d"
+
+    monkeypatch.setattr(
+        cli_module.InferenceRuntime,
+        "load",
+        classmethod(lambda cls, path: FakeRuntime()),
+    )
+
+    assert cli_module.main(["ab", "--stream"]) == 0
+    assert capsys.readouterr().out == "cd\n"
+
+
 def test_generate_returns_only_new_text_and_eos_reason():
     tokenizer = CharTokenizer.from_text("abc")
     bos_id = tokenizer.token_to_id[tokenizer.bos_token]
@@ -110,7 +148,10 @@ def test_generate_returns_only_new_text_and_eos_reason():
 
     assert model.seen_contexts[0] == [bos_id, tokenizer.token_to_id["a"], b_id]
     assert result == runtime_module.GenerationResult(
-        input_text="ab", generated_text="c", finish_reason="eos"
+        input_text="ab",
+        generated_text="c",
+        finish_reason="eos",
+        generated_token_count=1,
     )
 
 
@@ -131,11 +172,21 @@ def test_generate_length_limit_does_not_include_prompt_tokens():
 
     runtime = runtime_module.InferenceRuntime(FixedNextModel(), tokenizer)
 
-    assert runtime.generate("a", max_new_tokens=1, top_k=1) == runtime_module.GenerationResult(
-        input_text="a", generated_text="b", finish_reason="length"
+    assert runtime.generate(
+        "a", max_new_tokens=1, top_k=1
+    ) == runtime_module.GenerationResult(
+        input_text="a",
+        generated_text="b",
+        finish_reason="length",
+        generated_token_count=1,
     )
-    assert runtime.generate("", max_new_tokens=0, top_k=1) == runtime_module.GenerationResult(
-        input_text="", generated_text="", finish_reason="length"
+    assert runtime.generate(
+        "", max_new_tokens=0, top_k=1
+    ) == runtime_module.GenerationResult(
+        input_text="",
+        generated_text="",
+        finish_reason="length",
+        generated_token_count=0,
     )
 
 
@@ -149,6 +200,7 @@ def test_batch_returns_every_input_even_if_an_earlier_request_reaches_eos(monkey
             input_text=prompt,
             generated_text="",
             finish_reason="eos" if prompt == "first" else "length",
+            generated_token_count=0,
         )
 
     monkeypatch.setattr(runtime, "generate", fake_generate)
@@ -425,8 +477,10 @@ def test_benchmark_separates_warmup_and_reports_measured_workload(monkeypatch):
     def fake_generate_batch(prompts, *, max_new_tokens, **kwargs):
         calls.append((list(prompts), max_new_tokens))
         return [
-            runtime_module.GenerationResult(prompts[0], "ab", "length"),
-            runtime_module.GenerationResult(prompts[1], "c", "eos"),
+            # The displayed text can expand a special token such as <UNK>;
+            # benchmark accounting must use sampled IDs, not text length.
+            runtime_module.GenerationResult(prompts[0], "<UNK>", "length", 1),
+            runtime_module.GenerationResult(prompts[1], "c", "eos", 1),
         ]
 
     clock_values = iter([10.0, 10.1, 20.0, 20.2, 30.0, 30.4])
@@ -453,8 +507,8 @@ def test_benchmark_separates_warmup_and_reports_measured_workload(monkeypatch):
     assert report["latency_mean_seconds"] == pytest.approx(0.7 / 3)
     assert report["latency_p50_seconds"] == pytest.approx(0.2)
     assert report["latency_p95_seconds"] == pytest.approx(0.4)
-    assert report["generated_tokens"] == 9
-    assert report["tokens_per_second"] == pytest.approx(9 / 0.7)
+    assert report["generated_tokens"] == 6
+    assert report["tokens_per_second"] == pytest.approx(6 / 0.7)
 
 
 def test_benchmark_from_path_separates_load_first_request_and_warmed_metrics(
@@ -471,7 +525,7 @@ def test_benchmark_from_path_separates_load_first_request_and_warmed_metrics(
 
     def fake_generate(prompt, *, max_new_tokens, **kwargs):
         calls.append(("first_request", prompt, max_new_tokens))
-        return runtime_module.GenerationResult(prompt, "ab", "length")
+        return runtime_module.GenerationResult(prompt, "<UNK>", "length", 1)
 
     def fake_benchmark(prompts, *, max_new_tokens, warmup_runs, measured_runs):
         calls.append(
@@ -510,7 +564,7 @@ def test_benchmark_from_path_separates_load_first_request_and_warmed_metrics(
         "model_path": str(model_path),
         "cold_start_seconds": pytest.approx(0.25),
         "first_request_seconds": pytest.approx(0.4),
-        "first_request_generated_tokens": 2,
+        "first_request_generated_tokens": 1,
         "warmed": {"latency_mean_seconds": 0.05, "tokens_per_second": 40.0},
     }
 
