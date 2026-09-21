@@ -2,6 +2,8 @@
 
 本项目采用“输入 → 模型 → 输出”的方式，一次学习一个问题，通过手写实现、对照实验和自动化测试逐步理解机器学习与语言模型。
 
+按主题归类的完整概念说明、公式、常见混淆和自测问题见 [项目知识库](KNOWLEDGE_BASE.md)。
+
 当前已完成逻辑回归、字符 bigram、字符 trigram、显式字符 Tokenizer、Token MLP、训练工程基础、字符级 Transformer、PyTorch 模型实践、手写 Subword Tokenizer，以及评估、推理与服务化十个阶段。后续学习顺序、阶段目标和验收标准见 [项目路线图](ROADMAP.md)。
 
 编号阶段的目录统一以 `stageXX_` 开头，因此可以使用普通 Python 导入语句，例如 `from projects.stage08_pytorch_transformer.model import TorchCharTransformer`。`projects/tokenization` 是跨阶段共享包，不属于编号阶段。
